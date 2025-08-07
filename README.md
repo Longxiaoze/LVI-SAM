@@ -1,5 +1,66 @@
 # LVI-SAM
 
+fix some codes for using on ubuntu20 noetic
+## install with docker
+``` bash
+xhost +local:root
+docker run -it \
+  --name lvi-slam \
+  --env DISPLAY=$DISPLAY \
+  --env QT_X11_NO_MITSHM=1 \
+  --network host \
+  --volume /tmp/.X11-unix:/tmp/.X11-unix \
+  --volume /:/host_root:ro \
+  osrf/ros:noetic-desktop-full \
+  bash
+
+sudo apt-get install -y git wget unzip ros-noetic-navigation ros-noetic-robot-localization ros-noetic-robot-state-publisher
+sudo add-apt-repository ppa:borglab/gtsam-release-4.0
+sudo apt update
+sudo apt install -y libgtsam-dev libgtsam-unstable-dev
+
+sudo apt-get install -y libgoogle-glog-dev
+sudo apt-get install -y libatlas-base-dev
+wget -O ~/ceres.zip https://github.com/ceres-solver/ceres-solver/archive/1.14.0.zip
+cd ~/ && unzip ceres.zip -d ~/
+cd ~/ceres-solver-1.14.0
+mkdir ceres-bin && cd ceres-bin
+cmake ..
+make -j20
+sudo make install
+
+mkdir ~/catkin_ws/src
+cd ~/catkin_ws/src
+git clone https://github.com/Longxiaoze/LVI-SAM
+cd ..
+catkin_make
+```
+
+## run with docker
+``` bash
+xhost +local:root
+docker start lvi-slam
+docker attach lvi-slam
+
+source catkin_ws/devel/setup.bash
+roslaunch lvi_sam run.launch 
+
+rosbag play workspace/Downloads/handheld.bag
+```
+
+If you want to test camera or lidar only:
+``` bash
+source catkin_ws/devel/setup.bash
+roslaunch lvi_sam run.launch 
+# -----------------------------------------------
+rosbag play workspace/Downloads/handheld.bag --clock --   /camera/image_raw/compressed:=/camera/image_raw_bak/compressed /points_raw:=/points_raw_bak
+
+# you can ctrl+c and lidar or camera will loss
+rosrun topic_tools relay /points_raw_bak /points_raw # lidar
+rosrun topic_tools relay /camera/image_raw_bak/compressed /camera/image_raw/compressed # camera
+```
+
+
 This repository contains code for a lidar-visual-inertial odometry and mapping system, which combines the advantages of [LIO-SAM](https://github.com/TixiaoShan/LIO-SAM/tree/a246c960e3fca52b989abf888c8cf1fae25b7c25) and [Vins-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono) at a system level.
 
 <p align='center'>
